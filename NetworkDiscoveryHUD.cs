@@ -4,7 +4,7 @@ using UnityEngine;
 using System.Linq;
 using System.Net;
 
-namespace Mirror
+namespace NetworkDiscoveryUnity
 {
 	
     public class NetworkDiscoveryHUD : MonoBehaviour
@@ -32,14 +32,8 @@ namespace Mirror
         public int width = 500, height = 400;
         [Range(1, 5)] public float refreshInterval = 3f;
 
-        public System.Action<NetworkDiscovery.DiscoveryInfo> connectAction;
+        public UnityEngine.Events.UnityEvent<NetworkDiscovery.DiscoveryInfo> onConnectEvent;
 
-
-
-        NetworkDiscoveryHUD()
-        {
-            this.connectAction = this.Connect;
-        }
 
         void OnEnable()
         {
@@ -72,10 +66,6 @@ namespace Mirror
 
         public void Display(Rect displayRect)
         {
-            if (null == NetworkManager.singleton)
-                return;
-            if (NetworkServer.active || NetworkClient.active)
-                return;
             if (!NetworkDiscovery.SupportedOnThisPlatform)
                 return;
 
@@ -157,7 +147,7 @@ namespace Mirror
                 GUILayout.BeginHorizontal();
 
                 if( GUILayout.Button(info.EndPoint.Address.ToString(), GUILayout.Width(elemWidth)) )
-                    this.connectAction(info);
+                    this.onConnectEvent.Invoke(info);
 
                 for( int i = 1; i < m_headerNames.Length; i++ )
                 {
@@ -206,25 +196,6 @@ namespace Mirror
             return Time.realtimeSinceStartup - m_timeWhenLookedUpServer < this.refreshInterval 
                 && m_lookupServer != null 
                 && m_lookupServer.Equals(endPoint);
-        }
-
-        void Connect(NetworkDiscovery.DiscoveryInfo info)
-        {
-            if (null == NetworkManager.singleton)
-                return;
-            if (null == Transport.activeTransport)
-                return;
-            if (!(Transport.activeTransport is TelepathyTransport))
-            {
-                Debug.LogErrorFormat("Only {0} is supported", typeof(TelepathyTransport));
-                return;
-            }
-
-            // assign address and port
-            NetworkManager.singleton.networkAddress = info.EndPoint.Address.ToString();
-            ((TelepathyTransport) Transport.activeTransport).port = ushort.Parse( info.KeyValuePairs[NetworkDiscovery.kPortKey] );
-
-            NetworkManager.singleton.StartClient();
         }
 
         void OnDiscoveredServer(NetworkDiscovery.DiscoveryInfo info)

@@ -4,10 +4,10 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Net.NetworkInformation;
-using System.Runtime.Serialization.Formatters.Binary;
 using UnityEngine.Profiling;
+using UnityEngine.SceneManagement;
 
-namespace Mirror
+namespace NetworkDiscoveryUnity
 {
 	
 	public class NetworkDiscovery : MonoBehaviour
@@ -36,8 +36,7 @@ namespace Mirror
 
 		public static NetworkDiscovery singleton { get ; private set ; }
 
-		public const string kSignatureKey = "Signature", kPortKey = "Port", kNumPlayersKey = "Players", 
-			kMaxNumPlayersKey = "MaxNumPlayers", kMapNameKey = "Map";
+		public const string kSignatureKey = "Signature", kPortKey = "Port", kMapNameKey = "Map";
 		
 		public const int kDefaultServerPort = 18418;
 
@@ -48,16 +47,10 @@ namespace Mirror
 
 		static string m_signature = null;
 
-		static bool m_wasServerActiveLastTime = false;
-
 		public static bool SupportedOnThisPlatform { get { return Application.platform != RuntimePlatform.WebGLPlayer; } }
 
-		static bool IsServerActive { get { return NetworkServer.active; } }
-	//	static bool IsClientActive { get { return NetworkClient.active; } }
 		public int gameServerPortNumber = 7777;
-		static int NumPlayers { get { return NetworkServer.connections.Count; } }
-		static int MaxNumPlayers { get { return NetworkManager.singleton != null ? NetworkManager.singleton.maxConnections : 0; } }
-
+		
 
 
 		void Awake ()
@@ -74,44 +67,30 @@ namespace Mirror
 			if(!SupportedOnThisPlatform)
 				return;
 
+			RegisterResponseData(kSignatureKey, GetSignature());
+			RegisterResponseData(kPortKey, this.gameServerPortNumber.ToString());
+			RegisterResponseData(kMapNameKey, SceneManager.GetActiveScene().name);
+
 			StartCoroutine (ClientCoroutine ());
 
 			StartCoroutine (ServerCoroutine ());
 
 		}
 
-		void OnDisable ()
+        void OnEnable()
+        {
+			SceneManager.activeSceneChanged += OnActiveSceneChanged;
+		}
+
+        void OnDisable ()
 		{
+			SceneManager.activeSceneChanged -= OnActiveSceneChanged;
 			ShutdownUdpClients ();
 		}
 
-
-		void Update ()
+		void OnActiveSceneChanged(Scene oldScene, Scene newScene)
 		{
-			if (!SupportedOnThisPlatform)
-				return;
-
-			if (IsServerActive)
-			{
-				UpdateResponseData ();
-			}
-
-			bool isServerActiveNow = IsServerActive;
-
-			if (isServerActiveNow != m_wasServerActiveLastTime)
-			{
-				// server status changed
-				// start/stop server's udp client
-
-				m_wasServerActiveLastTime = isServerActiveNow;
-
-				if (isServerActiveNow)
-					EnsureServerIsInitialized();
-				else
-					CloseServerUdpClient();
-				
-			}
-
+			RegisterResponseData(kMapNameKey, SceneManager.GetActiveScene().name);
 		}
 
 
@@ -474,20 +453,6 @@ namespace Mirror
 		public static void UnRegisterResponseData( string key )
 		{
 			m_responseData.Remove (key);
-		}
-
-		/// <summary>
-		/// Adds/updates some default response data.
-		/// </summary>
-		public static void UpdateResponseData()
-		{
-			
-			RegisterResponseData (kSignatureKey, GetSignature());
-			RegisterResponseData (kPortKey, singleton.gameServerPortNumber.ToString());
-			RegisterResponseData (kNumPlayersKey, NumPlayers.ToString ());
-			RegisterResponseData (kMaxNumPlayersKey, MaxNumPlayers.ToString ());
-			RegisterResponseData (kMapNameKey, UnityEngine.SceneManagement.SceneManager.GetActiveScene().name);
-
 		}
 
 		/// Signature identifies this game among others.
