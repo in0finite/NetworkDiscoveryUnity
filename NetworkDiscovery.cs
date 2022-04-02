@@ -55,26 +55,12 @@ namespace NetworkDiscoveryUnity
 
 		void Awake ()
 		{
-			if (Instance != null)
-				return;
-
-			Instance = this;
-
-		}
-
-		void Start ()
-		{
-			if(!SupportedOnThisPlatform)
-				return;
+			if (null == Instance)
+				Instance = this;
 
 			RegisterResponseData(kSignatureKey, GetCachedSignature());
 			RegisterResponseData(kPortKey, this.gameServerPortNumber.ToString());
 			RegisterResponseData(kMapNameKey, SceneManager.GetActiveScene().name);
-
-			StartCoroutine (ClientCoroutine ());
-
-			StartCoroutine (ServerCoroutine ());
-
 		}
 
         void OnEnable()
@@ -93,8 +79,14 @@ namespace NetworkDiscoveryUnity
 			RegisterResponseData(kMapNameKey, SceneManager.GetActiveScene().name);
 		}
 
+        void Update()
+        {
+			UpdateServer();
+			UpdateClient();
+        }
 
-		void EnsureServerIsInitialized()
+
+        void EnsureServerIsInitialized()
 		{
 
 			if (m_serverUdpCl != null)
@@ -167,35 +159,22 @@ namespace NetworkDiscoveryUnity
 			return null;
 		}
 
-		System.Collections.IEnumerator ServerCoroutine()
+		void UpdateServer()
 		{
+			if (null == m_serverUdpCl)
+				return;
 
-			while (true)
-			{
-
-				yield return null;
-
-				if (null == m_serverUdpCl)
-					continue;
-
-				if(!IsServerActive)
-					continue;
-				
-				// average time for this (including data receiving and processing): less than 100 us
-				Profiler.BeginSample ("Receive broadcast");
+			
+			// average time for this (including data receiving and processing): less than 100 us
+			Profiler.BeginSample ("Receive broadcast");
 			//	var timer = System.Diagnostics.Stopwatch.StartNew ();
 
-				RunSafe (() =>
-				{
-					var info = ReadDataFromUdpClient(m_serverUdpCl);
-					if(info != null)
-						OnReceivedBroadcast(info);
-				});
+			var info = ReadDataFromUdpClient(m_serverUdpCl);
+			if (info != null)
+				OnReceivedBroadcast(info);
 
-			//	Debug.Log("receive broadcast time: " + timer.GetElapsedMicroSeconds () + " us");
-				Profiler.EndSample ();
-
-			}
+		//	Debug.Log("receive broadcast time: " + timer.GetElapsedMicroSeconds () + " us");
+			Profiler.EndSample ();
 
 		}
 
@@ -213,24 +192,14 @@ namespace NetworkDiscoveryUnity
 			}
 		}
 
-		System.Collections.IEnumerator ClientCoroutine()
+		void UpdateClient()
 		{
+			if (null == m_clientUdpCl)
+				return;
 
-			while (true)
-			{
-				yield return null;
-
-				if (null == m_clientUdpCl)
-					continue;
-				
-				RunSafe( () =>
-				{
-					var info = ReadDataFromUdpClient (m_clientUdpCl);
-					if (info != null)
-						OnReceivedServerResponse(info);
-				});
-				
-			}
+			var info = ReadDataFromUdpClient(m_clientUdpCl);
+			if (info != null)
+				OnReceivedServerResponse(info);
 
 		}
 
