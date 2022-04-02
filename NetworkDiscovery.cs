@@ -41,7 +41,6 @@ namespace NetworkDiscoveryUnity
 		
 		public const int kDefaultServerPort = 18418;
 
-	//	[SerializeField] int m_clientPort = 18417;
 		[SerializeField] int m_serverPort = kDefaultServerPort;
 		UdpClient m_serverUdpCl = null;
 		UdpClient m_clientUdpCl = null;
@@ -87,7 +86,7 @@ namespace NetworkDiscoveryUnity
         }
 
 
-        void EnsureServerIsInitialized()
+        public void EnsureServerIsInitialized()
 		{
 
 			if (m_serverUdpCl != null)
@@ -118,7 +117,7 @@ namespace NetworkDiscoveryUnity
 			CloseClientUdpClient();
 		}
 
-		void CloseServerUdpClient()
+		public void CloseServerUdpClient()
 		{
 			if (m_serverUdpCl != null) {
 				m_serverUdpCl.Close ();
