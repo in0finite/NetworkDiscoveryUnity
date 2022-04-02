@@ -15,18 +15,19 @@ namespace NetworkDiscoveryUnity
 		
 		public class DiscoveryInfo
 		{
-			private IPEndPoint endPoint;
-			private Dictionary<string, string> keyValuePairs = new Dictionary<string, string> ();
-			private float timeWhenReceived = 0f;
+			public readonly IPEndPoint EndPoint;
+			public readonly IReadOnlyDictionary<string, string> KeyValuePairs;
+			private float m_timeWhenReceived = 0f;
+			public float TimeSinceReceived => Time.realtimeSinceStartup - m_timeWhenReceived;
+
 			public DiscoveryInfo (IPEndPoint endPoint, Dictionary<string, string> keyValuePairs)
 			{
-				this.endPoint = endPoint;
-				this.keyValuePairs = keyValuePairs;
-				this.timeWhenReceived = Time.realtimeSinceStartup;
+				this.EndPoint = endPoint;
+				this.KeyValuePairs = keyValuePairs;
+				m_timeWhenReceived = Time.realtimeSinceStartup;
 			}
-			public IPEndPoint EndPoint { get { return this.endPoint; } }
-			public Dictionary<string, string> KeyValuePairs { get { return this.keyValuePairs; } }
-			public float TimeSinceReceived { get { return Time.realtimeSinceStartup - this.timeWhenReceived; } }
+
+            public ushort GetGameServerPort() => ushort.Parse(this.KeyValuePairs[kPortKey]);
 		}
 
 		public event System.Action<DiscoveryInfo> onReceivedServerResponse = delegate {};
