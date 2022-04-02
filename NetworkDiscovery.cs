@@ -29,12 +29,12 @@ namespace NetworkDiscoveryUnity
 			public float TimeSinceReceived { get { return Time.realtimeSinceStartup - this.timeWhenReceived; } }
 		}
 
-		public static event System.Action<DiscoveryInfo> onReceivedServerResponse = delegate {};
+		public event System.Action<DiscoveryInfo> onReceivedServerResponse = delegate {};
 
 		// server sends this data as a response to broadcast
-		static Dictionary<string, string> m_responseData = new Dictionary<string, string> ();
+		readonly Dictionary<string, string> m_responseData = new Dictionary<string, string> ();
 
-		public static NetworkDiscovery singleton { get ; private set ; }
+		public static NetworkDiscovery Instance { get ; private set ; }
 
 		public const string kSignatureKey = "Signature", kPortKey = "Port", kMapNameKey = "Map";
 		
@@ -42,23 +42,23 @@ namespace NetworkDiscoveryUnity
 
 	//	[SerializeField] int m_clientPort = 18417;
 		[SerializeField] int m_serverPort = kDefaultServerPort;
-		static UdpClient m_serverUdpCl = null;
-		static UdpClient m_clientUdpCl = null;
-
-		static string m_signature = null;
+		UdpClient m_serverUdpCl = null;
+		UdpClient m_clientUdpCl = null;
 
 		public static bool SupportedOnThisPlatform { get { return Application.platform != RuntimePlatform.WebGLPlayer; } }
 
 		public int gameServerPortNumber = 7777;
+
+		private static string s_cachedSignature = null;
 		
 
 
 		void Awake ()
 		{
-			if (singleton != null)
+			if (Instance != null)
 				return;
 
-			singleton = this;
+			Instance = this;
 
 		}
 
@@ -67,7 +67,7 @@ namespace NetworkDiscoveryUnity
 			if(!SupportedOnThisPlatform)
 				return;
 
-			RegisterResponseData(kSignatureKey, GetSignature());
+			RegisterResponseData(kSignatureKey, GetCachedSignature());
 			RegisterResponseData(kPortKey, this.gameServerPortNumber.ToString());
 			RegisterResponseData(kMapNameKey, SceneManager.GetActiveScene().name);
 
@@ -94,21 +94,19 @@ namespace NetworkDiscoveryUnity
 		}
 
 
-		static void EnsureServerIsInitialized()
+		void EnsureServerIsInitialized()
 		{
 
 			if (m_serverUdpCl != null)
 				return;
 
-			m_serverUdpCl = new UdpClient (singleton.m_serverPort);
+			m_serverUdpCl = new UdpClient (m_serverPort);
 			RunSafe( () => { m_serverUdpCl.EnableBroadcast = true; } );
 			RunSafe( () => { m_serverUdpCl.MulticastLoopback = false; } );
 
-		//	m_serverUdpCl.BeginReceive(new System.AsyncCallback(ReceiveCallback), null);
-
 		}
 
-		static void EnsureClientIsInitialized()
+		void EnsureClientIsInitialized()
 		{
 
 			if (m_clientUdpCl != null)
@@ -121,13 +119,13 @@ namespace NetworkDiscoveryUnity
 
 		}
 
-		static void ShutdownUdpClients()
+		void ShutdownUdpClients()
 		{
 			CloseServerUdpClient();
 			CloseClientUdpClient();
 		}
 
-		static void CloseServerUdpClient()
+		void CloseServerUdpClient()
 		{
 			if (m_serverUdpCl != null) {
 				m_serverUdpCl.Close ();
@@ -135,7 +133,7 @@ namespace NetworkDiscoveryUnity
 			}
 		}
 
-		static void CloseClientUdpClient()
+		void CloseClientUdpClient()
 		{
 			if (m_clientUdpCl != null) {
 				m_clientUdpCl.Close ();
@@ -169,7 +167,7 @@ namespace NetworkDiscoveryUnity
 			return null;
 		}
 
-		static System.Collections.IEnumerator ServerCoroutine()
+		System.Collections.IEnumerator ServerCoroutine()
 		{
 
 			while (true)
@@ -201,9 +199,9 @@ namespace NetworkDiscoveryUnity
 
 		}
 
-		static void OnReceivedBroadcast(DiscoveryInfo info)
+		void OnReceivedBroadcast(DiscoveryInfo info)
 		{
-			if(info.KeyValuePairs.ContainsKey(kSignatureKey) && info.KeyValuePairs[kSignatureKey] == GetSignature())
+			if(info.KeyValuePairs.ContainsKey(kSignatureKey) && info.KeyValuePairs[kSignatureKey] == GetCachedSignature())
 			{
 				// signature matches
 				// send response
@@ -215,7 +213,7 @@ namespace NetworkDiscoveryUnity
 			}
 		}
 
-		static System.Collections.IEnumerator ClientCoroutine()
+		System.Collections.IEnumerator ClientCoroutine()
 		{
 
 			while (true)
@@ -240,14 +238,14 @@ namespace NetworkDiscoveryUnity
 		public static byte[] GetDiscoveryRequestData()
 		{
 			Profiler.BeginSample("ConvertDictionaryToByteArray");
-			var dict = new Dictionary<string, string>() {{kSignatureKey, GetSignature()}};
+			var dict = new Dictionary<string, string>() {{kSignatureKey, GetCachedSignature()}};
 			byte[] buffer = ConvertDictionaryToByteArray (dict);
 			Profiler.EndSample();
 
 			return buffer;
 		}
 
-		public static void SendBroadcast()
+		public void SendBroadcast()
 		{
 			if (!SupportedOnThisPlatform)
 				return;
@@ -258,7 +256,7 @@ namespace NetworkDiscoveryUnity
 			// which the socket is bound to.
 			// We need to broadcast packet on every network interface.
 
-			IPEndPoint endPoint = new IPEndPoint(IPAddress.Any, singleton.m_serverPort);
+			IPEndPoint endPoint = new IPEndPoint(IPAddress.Any, m_serverPort);
 
 			foreach(var address in GetBroadcastAdresses())
 			{
@@ -268,12 +266,12 @@ namespace NetworkDiscoveryUnity
 			
 		}
 
-		public static void SendDiscoveryRequest(IPEndPoint endPoint)
+		public void SendDiscoveryRequest(IPEndPoint endPoint)
 		{
 			SendDiscoveryRequest(endPoint, GetDiscoveryRequestData());
 		}
 
-		static void SendDiscoveryRequest(IPEndPoint endPoint, byte[] buffer)
+		void SendDiscoveryRequest(IPEndPoint endPoint, byte[] buffer)
 		{
 			if (!SupportedOnThisPlatform)
 				return;
@@ -426,7 +424,7 @@ namespace NetworkDiscoveryUnity
 		}
 
 
-		static void OnReceivedServerResponse(DiscoveryInfo info) {
+		void OnReceivedServerResponse(DiscoveryInfo info) {
 
 			// check if data is valid
 			if(!IsDataFromServerValid(info))
@@ -440,39 +438,46 @@ namespace NetworkDiscoveryUnity
 		public static bool IsDataFromServerValid(DiscoveryInfo data)
 		{
 			// data must contain signature which matches, and port number
-			return data.KeyValuePairs.ContainsKey(kSignatureKey) && data.KeyValuePairs[kSignatureKey] == GetSignature()
+			return data.KeyValuePairs.ContainsKey(kSignatureKey) && data.KeyValuePairs[kSignatureKey] == GetCachedSignature()
 				&& data.KeyValuePairs.ContainsKey(kPortKey);
 		}
 
 
-		public static void RegisterResponseData( string key, string value )
+		public void RegisterResponseData( string key, string value )
 		{
 			m_responseData[key] = value;
 		}
 
-		public static void UnRegisterResponseData( string key )
+		public void UnRegisterResponseData( string key )
 		{
 			m_responseData.Remove (key);
 		}
 
-		/// Signature identifies this game among others.
-		public static string GetSignature()
+		static string GetCachedSignature()
 		{
-			if (m_signature != null)
-				return m_signature;
-			
-			string[] strings = new string[]{ Application.companyName, Application.productName, 
+			if (s_cachedSignature != null)
+				return s_cachedSignature;
+
+			s_cachedSignature = CalculateGameSignature();
+
+			return s_cachedSignature;
+		}
+
+		/// Signature identifies this game among others.
+		public static string CalculateGameSignature()
+        {
+			string[] strings = new string[]{ Application.companyName, Application.productName,
 				Application.unityVersion };
 
-			m_signature = "";
+			string signature = "";
 
-			foreach(string str in strings)
+			foreach (string str in strings)
 			{
 				// only use it's hash code
-				m_signature += str.GetHashCode() + ".";
+				signature += str.GetHashCode() + ".";
 			}
 
-			return m_signature;
+			return signature;
 		}
 
 

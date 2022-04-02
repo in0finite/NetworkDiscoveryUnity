@@ -9,9 +9,10 @@ namespace NetworkDiscoveryUnity
 	
     public class NetworkDiscoveryHUD : MonoBehaviour
     {
+        NetworkDiscovery m_networkDiscovery;
+
         List<NetworkDiscovery.DiscoveryInfo> m_discoveredServers = new List<NetworkDiscovery.DiscoveryInfo>();
-        string[] m_headerNames = new string[]{"IP", NetworkDiscovery.kMapNameKey, NetworkDiscovery.kNumPlayersKey, 
-            NetworkDiscovery.kMaxNumPlayersKey};
+        string[] m_headerNames = new string[]{"IP", NetworkDiscovery.kMapNameKey};
         Vector2 m_scrollViewPos = Vector2.zero;
         public bool IsRefreshing { get { return Time.realtimeSinceStartup - m_timeWhenRefreshed < this.refreshInterval; } }
         float m_timeWhenRefreshed = 0f;
@@ -35,19 +36,19 @@ namespace NetworkDiscoveryUnity
         public UnityEngine.Events.UnityEvent<NetworkDiscovery.DiscoveryInfo> onConnectEvent;
 
 
+        void Awake()
+        {
+            m_networkDiscovery = this.GetComponent<NetworkDiscovery>();
+        }
+
         void OnEnable()
         {
-            NetworkDiscovery.onReceivedServerResponse += OnDiscoveredServer;
+            m_networkDiscovery.onReceivedServerResponse += OnDiscoveredServer;
         }
 
         void OnDisable()
         {
-            NetworkDiscovery.onReceivedServerResponse -= OnDiscoveredServer;
-        }
-
-        void Start()
-        {
-	        
+            m_networkDiscovery.onReceivedServerResponse -= OnDiscoveredServer;
         }
 
         void OnGUI()
@@ -170,7 +171,7 @@ namespace NetworkDiscoveryUnity
 
             m_timeWhenRefreshed = Time.realtimeSinceStartup;
 
-            NetworkDiscovery.SendBroadcast();
+            m_networkDiscovery.SendBroadcast();
             
         }
 
@@ -188,7 +189,7 @@ namespace NetworkDiscoveryUnity
 
             m_lookupServer = new IPEndPoint(ip, port);
 
-            NetworkDiscovery.SendDiscoveryRequest(m_lookupServer);
+            m_networkDiscovery.SendDiscoveryRequest(m_lookupServer);
         }
 
         bool IsLookingUpServer(IPEndPoint endPoint)
