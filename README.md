@@ -34,6 +34,9 @@ Attach `NetworkDiscovery` script to any game object. Assign game server port num
 Now, you can use `NetworkDiscoveryHUD` script to test it (by attaching it to the same game object), or use the API directly:
 
 ```cs
+// when your game server starts, initialize the network discovery
+networkDiscovery.EnsureServerIsInitialized();
+
 // register listener - this can also be done from Inspector
 networkDiscovery.onReceivedServerResponse.AddListener((NetworkDiscovery.DiscoveryInfo info) =>
 {
@@ -47,6 +50,9 @@ networkDiscovery.SendBroadcast();
 
 // on server side, you can register custom data for responding
 networkDiscovery.RegisterResponseData("Game mode", "Deathmatch");
+
+// when your game server is stopped, shutdown the network discovery
+networkDiscovery.CloseServerUdpClient();
 ```
 
 For more details on how to use it, check out `NetworkDiscoveryHUD` script.
