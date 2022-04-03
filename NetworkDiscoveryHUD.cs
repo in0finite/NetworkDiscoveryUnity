@@ -157,7 +157,9 @@ namespace NetworkDiscoveryUnity
             {
                 GUILayout.BeginHorizontal();
 
-                if( GUILayout.Button(info.EndPoint.Address.ToString(), GUILayout.Width(elemWidth)) )
+                bool hasGameServerPort = info.TryGetGameServerPort(out ushort gameServerPort);
+
+                if( GUILayout.Button(info.EndPoint.Address.ToString() + (hasGameServerPort ? $":{gameServerPort}" : ""), GUILayout.Width(elemWidth)) )
                     this.onConnectEvent.Invoke(info);
 
                 foreach(string headerName in headerNames.Skip(1))
