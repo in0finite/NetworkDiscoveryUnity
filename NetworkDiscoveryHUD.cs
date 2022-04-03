@@ -11,11 +11,18 @@ namespace NetworkDiscoveryUnity
     {
         NetworkDiscovery m_networkDiscovery;
 
-        List<NetworkDiscovery.DiscoveryInfo> m_discoveredServers = new List<NetworkDiscovery.DiscoveryInfo>();
-        string[] m_headerNames = new string[]{"IP", NetworkDiscovery.kMapNameKey};
+        readonly List<NetworkDiscovery.DiscoveryInfo> m_discoveredServers = new List<NetworkDiscovery.DiscoveryInfo>();
+
+        public List<string> additionalDataToDisplay = new List<string>()
+        {
+            NetworkDiscovery.kMapNameKey,
+        };
+
         Vector2 m_scrollViewPos = Vector2.zero;
+
         public bool IsRefreshing { get { return Time.realtimeSinceStartup - m_timeWhenRefreshed < this.refreshInterval; } }
         float m_timeWhenRefreshed = 0f;
+
         bool m_displayBroadcastAddresses = false;
 
         IPEndPoint m_lookupServer = null;   // server that we are currently looking up
@@ -132,11 +139,13 @@ namespace NetworkDiscoveryUnity
         public void DisplayServers()
         {
 
-            int elemWidth = this.width / m_headerNames.Length - 5;
+            var headerNames = Enumerable.Empty<string>().Append("IP").Concat(this.additionalDataToDisplay);
+
+            int elemWidth = this.width / headerNames.Count() - 5;
 
             // header
             GUILayout.BeginHorizontal();
-            foreach(string str in m_headerNames)
+            foreach(string str in headerNames)
                 GUILayout.Button(str, GUILayout.Width(elemWidth));
             GUILayout.EndHorizontal();
 
@@ -151,12 +160,12 @@ namespace NetworkDiscoveryUnity
                 if( GUILayout.Button(info.EndPoint.Address.ToString(), GUILayout.Width(elemWidth)) )
                     this.onConnectEvent.Invoke(info);
 
-                for( int i = 1; i < m_headerNames.Length; i++ )
+                foreach(string headerName in headerNames.Skip(1))
                 {
-                    if (info.KeyValuePairs.ContainsKey(m_headerNames[i]))
-                        GUILayout.Label(info.KeyValuePairs[m_headerNames[i]], m_centeredLabelStyle, GUILayout.Width(elemWidth));
-                    else
-                        GUILayout.Label("", m_centeredLabelStyle, GUILayout.Width(elemWidth));
+                    GUILayout.Label(
+                        info.KeyValuePairs.TryGetValue(headerName, out string value) ? value : "",
+                        m_centeredLabelStyle,
+                        GUILayout.Width(elemWidth));
                 }
 
                 GUILayout.EndHorizontal();
