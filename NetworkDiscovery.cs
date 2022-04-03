@@ -6,6 +6,7 @@ using System.Net.Sockets;
 using System.Net.NetworkInformation;
 using UnityEngine.Profiling;
 using UnityEngine.SceneManagement;
+using System.Globalization;
 
 namespace NetworkDiscoveryUnity
 {
@@ -27,14 +28,22 @@ namespace NetworkDiscoveryUnity
 				m_timeWhenReceived = Time.realtimeSinceStartup;
 			}
 
-            public ushort GetGameServerPort() => ushort.Parse(this.KeyValuePairs[kPortKey]);
-		}
+            public ushort GetGameServerPort() => ushort.Parse(this.KeyValuePairs[kPortKey], CultureInfo.InvariantCulture);
+
+            public bool TryGetGameServerPort(out ushort port)
+            {
+				port = 0;
+                return this.KeyValuePairs.TryGetValue(kPortKey, out string portString)
+					&& ushort.TryParse(portString, NumberStyles.None, CultureInfo.InvariantCulture, out port);
+            }
+        }
 
 		public UnityEngine.Events.UnityEvent<DiscoveryInfo> onReceivedServerResponse =
 			new UnityEngine.Events.UnityEvent<DiscoveryInfo>();
 
 		// server sends this data as a response to broadcast
-		readonly Dictionary<string, string> m_responseData = new Dictionary<string, string> ();
+		readonly Dictionary<string, string> m_responseData =
+			new Dictionary<string, string> (System.StringComparer.InvariantCulture);
 
 		public static NetworkDiscovery Instance { get ; private set ; }
 
@@ -60,7 +69,7 @@ namespace NetworkDiscoveryUnity
 				Instance = this;
 
 			RegisterResponseData(kSignatureKey, GetCachedSignature());
-			RegisterResponseData(kPortKey, this.gameServerPortNumber.ToString());
+			RegisterResponseData(kPortKey, this.gameServerPortNumber.ToString(CultureInfo.InvariantCulture));
 			RegisterResponseData(kMapNameKey, SceneManager.GetActiveScene().name);
 		}
 
@@ -208,7 +217,7 @@ namespace NetworkDiscoveryUnity
 		public static byte[] GetDiscoveryRequestData()
 		{
 			Profiler.BeginSample("ConvertDictionaryToByteArray");
-			var dict = new Dictionary<string, string>() {{kSignatureKey, GetCachedSignature()}};
+			var dict = new Dictionary<string, string>(System.StringComparer.InvariantCulture) {{kSignatureKey, GetCachedSignature()}};
 			byte[] buffer = ConvertDictionaryToByteArray (dict);
 			Profiler.EndSample();
 
@@ -458,7 +467,7 @@ namespace NetworkDiscoveryUnity
 
 		public static Dictionary<string, string> ConvertStringToDictionary( string str )
 		{
-			var dict = new Dictionary<string, string>();
+			var dict = new Dictionary<string, string>(System.StringComparer.InvariantCulture);
 			string[] lines = str.Split("\n".ToCharArray(), System.StringSplitOptions.RemoveEmptyEntries);
 			foreach(string line in lines)
 			{
