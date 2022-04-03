@@ -33,7 +33,8 @@ namespace NetworkDiscoveryUnity
         public int width = 500, height = 400;
         [Range(1, 5)] public float refreshInterval = 3f;
 
-        public UnityEngine.Events.UnityEvent<NetworkDiscovery.DiscoveryInfo> onConnectEvent;
+        public UnityEngine.Events.UnityEvent<NetworkDiscovery.DiscoveryInfo> onConnectEvent
+            = new UnityEngine.Events.UnityEvent<NetworkDiscovery.DiscoveryInfo>();
 
 
         void Awake()
@@ -43,12 +44,12 @@ namespace NetworkDiscoveryUnity
 
         void OnEnable()
         {
-            m_networkDiscovery.onReceivedServerResponse += OnDiscoveredServer;
+            m_networkDiscovery.onReceivedServerResponse.AddListener(OnDiscoveredServer);
         }
 
         void OnDisable()
         {
-            m_networkDiscovery.onReceivedServerResponse -= OnDiscoveredServer;
+            m_networkDiscovery.onReceivedServerResponse.RemoveListener(OnDiscoveredServer);
         }
 
         void OnGUI()

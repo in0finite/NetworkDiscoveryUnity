@@ -30,7 +30,8 @@ namespace NetworkDiscoveryUnity
             public ushort GetGameServerPort() => ushort.Parse(this.KeyValuePairs[kPortKey]);
 		}
 
-		public event System.Action<DiscoveryInfo> onReceivedServerResponse = delegate {};
+		public UnityEngine.Events.UnityEvent<DiscoveryInfo> onReceivedServerResponse =
+			new UnityEngine.Events.UnityEvent<DiscoveryInfo>();
 
 		// server sends this data as a response to broadcast
 		readonly Dictionary<string, string> m_responseData = new Dictionary<string, string> ();
@@ -400,7 +401,7 @@ namespace NetworkDiscoveryUnity
 				return;
 			
 			// invoke event
-			onReceivedServerResponse(info);
+			this.onReceivedServerResponse?.Invoke(info);
 
 		}
 
