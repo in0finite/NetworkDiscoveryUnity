@@ -18,7 +18,7 @@ Network discovery for Unity3D.
 
 - Can lookup specific servers on the internet (outside of local network).
 
-- Has a separate [GUI script](/NetworkDiscoveryHUD.cs) for easy testing.
+- Has a separate GUI script (`NetworkDiscoveryHUD`) for easy testing.
 
 - Has support for custom response data.
 
@@ -29,32 +29,32 @@ Network discovery for Unity3D.
 
 ## Usage
 
-Attach [NetworkDiscovery](/NetworkDiscovery.cs) script to any game object. Assign game server port number.
+Attach `NetworkDiscovery` script to any game object. Assign game server port number.
 
-Now, you can use [NetworkDiscoveryHUD](/NetworkDiscoveryHUD.cs) script to test it (by attaching it to the same game object), or use the API directly:
+Now, you can use `NetworkDiscoveryHUD` script to test it (by attaching it to the same game object), or use the API directly:
 
 ```cs
-// register listener
-NetworkDiscovery.onReceivedServerResponse += (NetworkDiscovery.DiscoveryInfo info) =>
+// register listener - this can also be done from Inspector
+networkDiscovery.onReceivedServerResponse.AddListener((NetworkDiscovery.DiscoveryInfo info) =>
 {
 	// we received response from server
 	// add it to list of servers, or connect immediately...
-};
+});
 
-// send broadcast on LAN
+// send broadcast on LAN - this is used when you want to refresh the list of servers
 // when server receives the packet, he will respond
-NetworkDiscovery.SendBroadcast();
+networkDiscovery.SendBroadcast();
 
 // on server side, you can register custom data for responding
-NetworkDiscovery.RegisterResponseData("Game mode", "Deathmatch");
+networkDiscovery.RegisterResponseData("Game mode", "Deathmatch");
 ```
 
-For more details on how to use it, check out NetworkDiscoveryHUD script.
+For more details on how to use it, check out `NetworkDiscoveryHUD` script.
 
 
 ## Inspector
 
-![](https://i.imgur.com/R9ZU1G2.png)
+![](https://i.imgur.com/VuLPOzQ.png)
 
 
 ## Example GUI
@@ -62,7 +62,7 @@ For more details on how to use it, check out NetworkDiscoveryHUD script.
 ![](https://i.imgur.com/SXqKMbJ.png)
 
 
-## Possible improvements
+## Further improvements
 
 - Measure ping - requires that all socket operations are done in a separate thread, or using async methods
 
